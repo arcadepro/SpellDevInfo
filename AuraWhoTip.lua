@@ -53,6 +53,7 @@ for k, v in pairs(_G) do
 end
 
 local function AddSpellInfo(tooltip, id)
+	if not IsModifierKeyDown() then return end
 	local name, _, _, cost, isFunnel, powerType, castTime, minRange, maxRange = GetSpellInfo(id)
 	if not name then return end
 	
@@ -201,6 +202,7 @@ local function AddMacroInfo(tooltip, index)
 end
 
 local function AddActionInfo(tooltip, slot)
+	if not IsModifierKeyDown() then return end
 	local actionType, id, subType = GetActionInfo(slot)
 	if not actionType then return end
 
@@ -236,6 +238,7 @@ local function AddActionInfo(tooltip, slot)
 end
 
 local function AddAuraInfo(func, tooltip, ...)
+	if not IsModifierKeyDown() then return end
 	local name, _, _, _, debuffType, _, _, unitCaster, isStealable, shouldConsolidate, spellId, canApplyAura, isBossDebuff = func(...)
 	if not name then return end
 	
