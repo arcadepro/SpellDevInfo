@@ -3,7 +3,7 @@ local strmatch, strformat, ceil = string.match, string.format, math.ceil
 
 local function GetUnitName(unitId)
 	local name = UnitName(unitId)
-	if name then 
+	if name then
 		if UnitIsPlayer(unitId) then
 			local color = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[select(2, UnitClass(unitId))]
 			if color then
@@ -56,9 +56,9 @@ local function AddSpellInfo(tooltip, id)
 	if not IsModifierKeyDown() then return end
 	local name, _, _, cost, isFunnel, powerType, castTime, minRange, maxRange = GetSpellInfo(id)
 	if not name then return end
-	
+
 	id = tonumber(id)
-	
+
 	tooltip:AddLine("|cffffffff=== Spell data ===|r")
 	tooltip:AddDoubleLine("Id", id or "?")
 	tooltip:AddDoubleLine("Name", name or "?")
@@ -74,17 +74,17 @@ local function AddSpellInfo(tooltip, id)
 	tooltip:AddDoubleLine("Min range", minRange or "?")
 	tooltip:AddDoubleLine("Max range", maxRange or "?")
 	AddGenericValues(tooltip, 10, GetSpellInfo(id))
-	
+
 	local spec, class = IsSpellClassOrSpec(name)
 	tooltip:AddDoubleLine("Class", class or "?")
 	tooltip:AddDoubleLine("Specialization", spec or "?")
 	tooltip:AddDoubleLine("Talent ?", BoolStr(IsTalentSpell(name)))
-	
+
 	if id then
 		tooltip:AddDoubleLine("Player Spell ?", BoolStr(IsPlayerSpell(id)))
 		tooltip:AddDoubleLine("Known ?", BoolStr(IsSpellKnown(id)))
 	end
-	
+
 	tooltip:AddDoubleLine("Consumable ?", BoolStr(IsConsumableSpell(id or name)))
 	tooltip:AddDoubleLine("Helpful ?", BoolStr(IsHelpfulSpell(id or name)))
 	tooltip:AddDoubleLine("Harmful ?", BoolStr(IsHarmfulSpell(id or name)))
@@ -93,8 +93,8 @@ local function AddSpellInfo(tooltip, id)
 	local usable, nopower = IsUsableSpell(id)
 	tooltip:AddDoubleLine("Usable ?", BoolStr(usable))
 	tooltip:AddDoubleLine("Not enough power ?", BoolStr(nopower))
-	
-	tooltip:Show()	
+
+	tooltip:Show()
 	return true
 end
 
@@ -111,7 +111,7 @@ local function AddCompanionInfo(tooltip, ctype, id)
 		local creatureID, creatureName, creatureSpellID, _, issummoned, mountType = GetCompanionInfo(ctype, index)
 		if creatureSpellID == id then
 			--if not creatureID then return end
-			
+
 			tooltip:AddLine("|cffffffff=== Companion data ===|r")
 			tooltip:AddDoubleLine("Type", ctype)
 			tooltip:AddDoubleLine("Index", Index)
@@ -126,7 +126,7 @@ local function AddCompanionInfo(tooltip, ctype, id)
 			end
 
 			AddGenericValues(tooltip, 7, GetCompanionInfo(ctype, index))
-			
+
 			return Chain(AddSpellInfo, tooltip, creatureSpellID)
 		end
 	end
@@ -136,9 +136,9 @@ local function AddItemInfo(tooltip, id)
 	local name, _, rarity, level, minLevel, type, subType, stackCount,
 equipLoc, _, sellPrice = GetItemInfo(id)
 	if not name then return end
-	
+
 	id = tonumber(id)
-	
+
 	tooltip:AddLine("|cffffffff=== Item data ===|r")
 	tooltip:AddDoubleLine("Id", id or "?")
 	tooltip:AddDoubleLine("Name", name or "?")
@@ -157,7 +157,7 @@ equipLoc, _, sellPrice = GetItemInfo(id)
 		tooltip:AddDoubleLine("Sell price", sellPrice)
 	end
 	AddGenericValues(tooltip, 12, GetItemInfo(id or name))
-	
+
 	tooltip:AddDoubleLine("Consumable ?", BoolStr(IsConsumableItem(id or name)))
 	tooltip:AddDoubleLine("Helpful ?", BoolStr(IsHelpfulItem(id or name)))
 	tooltip:AddDoubleLine("Harmful ?", BoolStr(IsHarmfulItem(id or name)))
@@ -165,38 +165,38 @@ equipLoc, _, sellPrice = GetItemInfo(id)
 	local usable, nopower = IsUsableItem(id)
 	tooltip:AddDoubleLine("Usable ?", BoolStr(usable))
 	tooltip:AddDoubleLine("Not enough power ?", BoolStr(nopower))
-	
+
 	local spell = GetItemSpell(id or name)
 	if spell then
 		tooltip:AddDoubleLine("Spell", spell)
 	end
-	
+
 	return Chain(AddSpellInfo, tooltip, spell)
 end
 
 local function AddMacroInfo(tooltip, index)
 	local name, _, _, isLocal = GetMacroInfo(index)
 	if not name then return end
-	
+
 	tooltip:AddLine("|cffffffff=== Macro data ===|r")
 	tooltip:AddDoubleLine("Index", index)
 	tooltip:AddDoubleLine("Name", name)
 	tooltip:AddDoubleLine("Local ?", BoolStr(isLocal))
 	AddGenericValues(tooltip, 4, GetMacroInfo(index))
-	
+
 	local spell, rank, spellId = GetMacroSpell(index)
 	if spellId then
 		tooltip:AddDoubleLine("Spell", spell)
 		return Chain(AddSpellInfo, tooltip, spellId)
 	end
-	
+
 	local item, link = GetMacroItem(index)
 	if link then
 		tooltip:AddDoubleLine("Item", item)
 		local _, itemId = strmatch(link, "item:(%d+)")
 		return Chain(AddItemInfo, tooltip, tonumber(itemId))
 	end
-	
+
 	tooltip:Show()
 	return true
 end
@@ -218,9 +218,9 @@ local function AddActionInfo(tooltip, slot)
 	local usable, nopower = IsUsableAction(slot)
 	tooltip:AddDoubleLine("Usable ?", BoolStr(usable))
 	tooltip:AddDoubleLine("Not enough power ?", BoolStr(nopower))
-		
+
 	tooltip:AddDoubleLine("Consumable ?", BoolStr(IsConsumableAction(slot)))
-	
+
 	if actionType then
 		if actionType == "spell" then
 			return Chain(AddSpellInfo, tooltip, id)
@@ -232,8 +232,8 @@ local function AddActionInfo(tooltip, slot)
 			return Chain(AddItemInfo, tooltip, id)
 		end
 	end
-	
-	tooltip:Show()	
+
+	tooltip:Show()
 	return true
 end
 
@@ -241,7 +241,7 @@ local function AddAuraInfo(func, tooltip, ...)
 	if not IsModifierKeyDown() then return end
 	local name, _, _, _, debuffType, _, _, unitCaster, isStealable, shouldConsolidate, spellId, canApplyAura, isBossDebuff = func(...)
 	if not name then return end
-	
+
 	tooltip:AddLine("|cffffffff=== Aura data ===|r")
 	tooltip:AddDoubleLine("Caster", unitCaster and GetUnitName(unitCaster) or "?")
 	tooltip:AddDoubleLine("Type", debuffType or "-")
