@@ -255,9 +255,34 @@ local function AddAuraInfo(func, tooltip, ...)
 	return Chain(AddSpellInfo, tooltip, spellId)
 end
 
+local function AddSpellbookInfo(tooltip, slot, bookType)
+	if not IsModifierKeyDown() then return end
+
+	tooltip:AddLine("|cffffffff=== Spellbook data ===|r")
+
+	tooltip:AddDoubleLine("Slot", slot or "?")
+	tooltip:AddDoubleLine("Book type", bookType or "-")
+
+	local slotType, slotId = GetSpellBookItemInfo(slot, bookType)
+	tooltip:AddDoubleLine("Slot type", slotType or "?")
+	tooltip:AddDoubleLine("Slot id", slotId or "-")
+
+	local name, subName = GetSpellBookItemName(slot, bookType)
+	tooltip:AddDoubleLine("Name", name or "?")
+	tooltip:AddDoubleLine("subName", subName or "-")
+
+	if slotType == "SPELL" then
+		return Chain(AddSpellInfo, tooltip, slotId)
+	else
+		tooltip:Show()
+		return true
+	end
+end
+
 local proto = getmetatable(GameTooltip).__index
 hooksecurefunc(proto, "SetUnitAura", function(...) return AddAuraInfo(UnitAura, ...) end)
 hooksecurefunc(proto, "SetUnitBuff", function(...) return AddAuraInfo(UnitBuff, ...) end)
 hooksecurefunc(proto, "SetUnitDebuff", function(...) return AddAuraInfo(UnitDebuff, ...) end)
 hooksecurefunc(proto, "SetSpellByID", AddSpellInfo)
+hooksecurefunc(proto, "SetSpellBookItem", AddSpellbookInfo)
 hooksecurefunc(proto, "SetAction", AddActionInfo)
