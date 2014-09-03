@@ -1,0 +1,7 @@
+## Interface: 50400
+
+## Title: Spell Developper Info
+## Notes: Add technical information about spell, items and macros in tooltips.
+## Author: Adirelle
+
+SpellDevInfo.lua
