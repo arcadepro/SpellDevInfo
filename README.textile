@@ -1,0 +1,3 @@
+h1. SpellDevInfo
+
+This addons just shows a lot of information from the Blizzard API about spells, items, macros when you hover a button or aura while pressing any modifier key.
