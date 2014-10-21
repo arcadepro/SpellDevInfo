@@ -10,6 +10,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 --]==]
 
+
 local strmatch, strformat, ceil = string.match, string.format, math.ceil
 
 local function GetUnitName(unitId)
@@ -40,6 +41,102 @@ end
 
 local function BoolStr(value)
 	return value and '|cff00ff00yes|r' or '|cffff0000no|r'
+end
+
+local function ShowSpellList(a, ...)
+	if type(a) == "table" then
+		return strjoin(" ", ShowSpellList(unpack(a))), ShowSpellList(...)
+	elseif type(a) == "number" then
+		return GetSpellLink(a) or format("[#%d]", a), ShowSpellList(...)
+	end
+end
+
+local NOOP = function() end
+local AddLibPlayerSpellsInfo = NOOP
+local AddLibDispellableInfo = NOOP
+local AddDRDataInfo = NOOP
+local AddLibItemBuffsInfo = NOOP
+
+local LibPlayerSpells, LPSMinor = LibStub('LibPlayerSpells-1.0', true)
+if LibPlayerSpells then
+	local band, bor = bit.band, bit.bor
+	local c = LibPlayerSpells.constants
+	local m = LibPlayerSpells.masks
+	local OTHERS = bor(c.AURA, c.UNIQUE_AURA, c.COOLDOWN, c.SURVIVAL, c.BURST, c.MANA_REGEN, c.POWER_REGEN, c.IMPORTANT, c.INVERT_AURA)
+	
+	local function _ShowFlags(value, name, flag)
+		if not name then return end
+		if value == flag then
+			return name, _ShowFlags(value, next(c, name))
+		else
+			return _ShowFlags(value, next(c, name))
+		end
+	end
+	
+	local function ShowFlags(value, mask)
+		local value = band(value, mask)
+		if value == 0 then
+			return
+		end
+		return strjoin(" | ", _ShowFlags(value, next(c)))
+	end
+
+	function AddLibPlayerSpellsInfo(tooltip, id)
+	
+		tooltip:AddLine("|cffffffff=== LibPlayerSpells-1.0-"..LPSMinor.." ===|r")
+		
+		local flags, providers, modifiers, raidbuff, category = LibPlayerSpells:GetSpellInfo(id)
+		
+		if not flags then
+			return tooltip:AddLine("No information", 0.5, 0.5, 0.5)
+		end
+		tooltip:AddDoubleLine("Type", ShowFlags(flags, m.TYPE) or "regular")
+		tooltip:AddDoubleLine("Targeting", ShowFlags(flags, m.TARGETING))
+		tooltip:AddDoubleLine("Other flags", ShowFlags(flags, OTHERS) or "none")
+		if band(flags, m.TYPE) == c.RAIDBUFF then
+			tooltip:AddDoubleLine("Raid buffs", ShowFlags(raidbuff, m.RAIDBUFF_TYPE))
+		end
+		tooltip:AddDoubleLine("Provider(s)", ShowSpellList(providers))
+		tooltip:AddDoubleLine("Modifier(s)", ShowSpellList(modifiers))
+
+		local _, patch, revision = LibPlayerSpells:GetVersionInfo(category)
+		tooltip:AddDoubleLine("Source category", category)
+		tooltip:AddDoubleLine("Data patch", patch)
+		tooltip:AddDoubleLine("Data revision", revision)
+	end
+end
+
+local LibDispellable, LDMinor = LibStub('LibDispellable-1.0', true)
+if LibDispellable then
+	function AddLibDispellableInfo(tooltip, id)
+		tooltip:AddLine("|cffffffff=== LibDispellable-1.0-"..LDMinor.." ===|r")
+		tooltip:AddDoubleLine("Enrage ?", BoolStr(LibDispellable:IsEnrageEffect(id)))
+		tooltip:AddDoubleLine("Can dispell:", LibDispellable.spells[id] or "nothing")
+	end
+end
+
+local LibItemBuffs, LIBMinor = LibStub('LibItemBuffs-1.0', true)
+if LibItemBuffs then
+	function AddLibItemBuffsInfo(tooltip, id)
+		tooltip:AddLine("|cffffffff=== LibItemBuffs-1.0-"..LIBMinor.." ===|r")
+		tooltip:AddLine("Buffs", ShowSpellList(LibItemBuffs:GetItemBuffs(id)) or "none")
+	end
+end
+
+local DRData, DRMinor = LibStub('DRData-1.0', true)
+if DRData then
+	function AddDRDataInfo(tooltip, id)
+		tooltip:AddLine("|cffffffff=== DRData-1.0-"..DRMinor.." ===|r")
+		local category = DRData:GetSpellCategory(id)
+		if category == "" then category = nil end
+		tooltip:AddLine("DR category", category or "none")
+		for s, p in pairs(DRData:GetProviders()) do
+			if p == id then
+				local category = DRData:GetSpellCategory(s)
+				tooltip:AddLine("Provides", ShowSpellList(s).." "..category)
+			end
+		end
+	end
 end
 
 local function Chain(func, tooltip, first, ...)
@@ -104,6 +201,10 @@ local function AddSpellInfo(tooltip, id)
 	local usable, nopower = IsUsableSpell(id)
 	tooltip:AddDoubleLine("Usable ?", BoolStr(usable))
 	tooltip:AddDoubleLine("Not enough power ?", BoolStr(nopower))
+
+	AddLibPlayerSpellsInfo(tooltip, id)
+	AddLibDispellableInfo(tooltip, id)
+	AddDRDataInfo(tooltip, id)
 
 	tooltip:Show()
 	return true
@@ -176,10 +277,12 @@ equipLoc, _, sellPrice = GetItemInfo(id)
 	local usable, nopower = IsUsableItem(id)
 	tooltip:AddDoubleLine("Usable ?", BoolStr(usable))
 	tooltip:AddDoubleLine("Not enough power ?", BoolStr(nopower))
+	
+	AddLibItemBuffsInfo(tooltip, id or name)
 
 	local spell = GetItemSpell(id or name)
 	if spell then
-		tooltip:AddDoubleLine("Spell", spell)
+		tooltip:AddDoubleLine("Item spell", spell)
 	end
 
 	return Chain(AddSpellInfo, tooltip, spell)
